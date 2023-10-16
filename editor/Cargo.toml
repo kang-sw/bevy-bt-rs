@@ -1,0 +1,7 @@
+[package]
+name = "bevy-bt-editor"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0"
+description = "Behavior tree editor for BevyBT"
+authors = ["kang-sw <ki6080@gmail.com>"]
