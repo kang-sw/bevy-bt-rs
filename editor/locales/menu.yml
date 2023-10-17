@@ -1,0 +1,16 @@
+_version: 2
+menu.file:
+  en: File
+  ko-KR: 파일
+menu.file.new_ws:
+  en: New Workspace
+menu.file.open_ws:
+  en: Open Workspace
+menu.file.recent:
+  en: Recent...
+menu.file.section?graph:
+  en: Graph
+menu.exit:
+  en: Exit
+
+

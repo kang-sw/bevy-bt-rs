@@ -39,22 +39,18 @@ pub mod example_bt {
 		blackboard: Blackboard,
 	}
 	
-	struct Blackboard {
-		has_line_of_sight: bool,
+	pub struct Blackboard {
+		/// Public expose 여부는 에디터에서 정한다. Public 변수는 어디서든 변경 가능한 
+		/// 프로퍼티를 뜻하며, 사용자가 정책에 따라 정의하는 편.
+		pub has_line_of_sight: bool,
+		
 		enemy_actor: Entity,
 		patrol_location: Vec3,
 	}
-	
-	/// 대부분 데코레이터는 자동 생성될 수 있습니다.
 
 	/// 에이전트가 실행해야 하는 액션
-	/// 
-	/// 비헤비어 트리는 참고로, 몇 개의 기본 
 	pub enum Task<'a> {
 		__Ph(PhantomData<&'a ()>),
-		ScanLineOfSight {
-			has_line_of_sight: &'a bool,
-		}
 		RotateToFaceBBEntry {
 			target: Entity,
 		},
@@ -71,13 +67,28 @@ pub mod example_bt {
 		}
 	}
 	
+	/// 내부 스테이트 변수 ... 각 노드마다 하나씩 생성된다.
+	/// 
+	/// 비동기 트리의 경우, 서브트리가 생성
+	enum RootState {
+		Root,
+		/// S 첫 글자 및, 0-9a-zA-Z 문자 중 하나로 지어진 8글자 해시
+		SczSSazfg2 {
+			
+		},
+		
+	}
+	
+	
 	impl BehaviorTree {
-		/// 현재 실행중인 액션에 인터럽트를 건다. 트리가 루트부터 다시 평가된다.
-		pub fn interrupt(&mut self) {
-			self.version += 1;
-			self.action = None;
+		pub fn blackboard_mut(&mut self) -> &mut Blackboard {
+			&mut self.blackboard
 		}
-
+		
+		pub fn blackboard(&self) -> &Blackboard {
+			&self.blackboard
+		}
+		
 		/// 해당 액션을 실행하고, 액션의 결과를 반환한다; (성공/실패/진행 중)
 		/// 
 		/// 병렬 태스크의 경우 여러 차례 실행될 수 있다.
@@ -98,30 +109,17 @@ fn sys_update_bt(
 	time: Res<Time>,
 	agents: Query<&mut example_bt::BehaviorTree, &mut MyAgentAction>,
 ) {
+	use example_bt::Task;
+	
 	// 설계에 따라 병렬 실행도 가능할 것
 	for agent in agents {
-		agent.tick(
-			time,
-			|action| {
-				match action {
-					RunnerAction::UpdateBlackboard(UpdateBlackboard::HasLineOfSight(has_line_of_sight)) => {
-						// 블랙보드 엔트리를 업데이트한다.
-						*has_line_of_sight = true;
-					},
-					
-					RunnerAction::Task(task, out_result) => {
-						match task {
-							Task::RotateToFaceBBEntry { target } => {
-								// 블랙보드 엔트리를 읽는다.
-								let target = *target;
-								
-								Some(true)
-							}
-							...
-						}
-					}
-					
-					...
+		// 블랙보드는 사전에 업데이트해두거나, 특정 액션의 출력을 연결할 수 있다.
+		agent.blackboard_mut().has_line_of_sight = calculate_line_of_sight();
+		
+		// 행동 트리를 실행한다. 비동기 
+		agent.tick(time, |blackboard, action| match action {
+				Task::RotateToFaceBBEntry { target } => {
+					blackboard.has_line_of_sight = calculate_line_of_sight();
 				}
 			}
 		)

@@ -5,3 +5,9 @@ edition = "2021"
 license = "MIT"
 description = "Defines shared types among various BevyBT generations."
 authors = ["kang-sw <ki6080@gmail.com>"]
+
+[dependencies]
+indexmap = { version = "2.0.2", features = ["serde"] }
+ron = { version = "0.8.1", features = ["indexmap"] }
+serde = { version = "1.0.189", features = ["derive"] }
+strum = { version = "0.25.0", features = ["derive"] }
