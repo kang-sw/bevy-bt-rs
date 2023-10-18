@@ -3,7 +3,10 @@
 //! Unlike BevyBT Editor, this module is defined in `bevy-bt-core`, which is licensed under MIT. You
 //! can implement your own editor which generates compatible data type with BevyBT
 
-use std::collections::HashMap;
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::Arc,
+};
 
 use indexmap::IndexMap;
 
@@ -15,12 +18,15 @@ use indexmap::IndexMap;
 ///         - Validates if tree's every [`TreeRef`] points valid tree path.
 ///         - Validates if there's no conflicting [`UserAction`] definitions.
 ///     - `reload`: Reload workspace from file system
-pub struct Workspace {
-    trees: HashMap<String, BehaviorTree>,
-    user_actions: HashMap<String, UserAction>,
-    user_structs: HashMap<String, UserStruct>,
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct Project {
+    /// Force sorting by key
+    pub trees: BTreeMap<String, BehaviorTree>,
+    pub user_actions: BTreeMap<String, UserAction>,
+    pub user_structs: BTreeMap<String, UserStruct>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct BehaviorTree {
     /// The root node, which is entry point of execution hierarchy.
     root: Node,
@@ -32,9 +38,10 @@ pub struct BehaviorTree {
     blackboard: HashMap<String, Argument>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Node {
-    /// Overrided title of this node.
-    pub title: String,
+    /// Optional title of this node.
+    pub title: Option<String>,
 
     /// Decorator of this node
     pub decorators: Vec<Decorator>,
@@ -49,6 +56,7 @@ pub struct Node {
     pub class: NodeClass,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum NodeClass {
     Sequence(SequenceNode),
     Selector(SelectorNode),
@@ -97,22 +105,27 @@ pub struct UserStruct {
     pub fields: IndexMap<String, Argument>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SequenceNode {
     pub children: Vec<Node>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SelectorNode {
     pub random: bool,
     pub children: Vec<Node>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TaskNode {}
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TreeRef {
     /// Must be handled properly by behavior tree editor!
     pub relative_path: String,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Parallel {
     /// Only result of the main node is evaluated. Once main node is completed, all other parallel
     /// nodes are aborted
@@ -122,8 +135,18 @@ pub struct Parallel {
     pub subs: Vec<NodeClass>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Task {
-    UserAction(UserAction),
+    UserAction {
+        key: String,
+
+        /// Same number of inputs as [`UserAction::inputs`]
+        input_bindings: Vec<UserActionInput>,
+
+        /// Same number of outputs as [`UserAction::outputs`]. Can be [`None`] if user action result
+        /// is not bound to any blackboard variable.
+        output_bindings: Vec<Option<String>>,
+    },
 
     WaitFor {
         timeout: f64,
@@ -133,11 +156,21 @@ pub enum Task {
     WaitForever,
 }
 
-pub struct UserAction {
-    inputs: Vec<Argument>,
-    outputs: Vec<Argument>,
+#[derive(Default, Debug, serde::Serialize, serde::Deserialize)]
+pub enum UserActionInput {
+    #[default]
+    Unspecified,
+    Blackboard(String),
+    Argument(Argument),
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct UserAction {
+    pub inputs: Vec<ArgumentDiscriminants>,
+    pub outputs: Vec<ArgumentDiscriminants>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Decorator {
     /// TODO: Blackboard evaluation expression
 
